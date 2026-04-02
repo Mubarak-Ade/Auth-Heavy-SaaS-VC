@@ -7,6 +7,7 @@ import {
 } from "../controllers/org.controller.js"
 import {
   acceptInviteController,
+  getInviteDetailsController,
   inviteMemberController,
   listMembersController,
   removeMemberController,
@@ -20,6 +21,7 @@ import {
   acceptInviteSchema,
   createOrgSchema,
   inviteMemberSchema,
+  inviteTokenParamsSchema,
   memberParamsSchema,
   updateMemberRoleSchema
 } from "../schemas/org.schemas.js"
@@ -29,6 +31,11 @@ import { taskRouter } from "./task.routes.js"
 
 export const orgRouter = Router()
 
+orgRouter.get(
+  "/orgs/invites/:token",
+  validate(inviteTokenParamsSchema),
+  asyncHandler(getInviteDetailsController)
+)
 orgRouter.post("/orgs/invites/accept", authenticate, validate(acceptInviteSchema), asyncHandler(acceptInviteController))
 orgRouter.use(authenticate)
 orgRouter.get("/orgs", asyncHandler(listOrganizationsController))

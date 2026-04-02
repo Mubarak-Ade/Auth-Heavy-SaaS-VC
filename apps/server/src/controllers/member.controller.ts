@@ -2,6 +2,7 @@ import type { Request, Response } from "express"
 
 import { InviteModel } from "../models/invite.model.js"
 import { OrgMemberModel } from "../models/org-member.model.js"
+import { OrganizationModel } from "../models/organization.model.js"
 import { UserModel } from "../models/user.model.js"
 import { normalizeEmail } from "../utils/identity.js"
 import { HttpError } from "../utils/http-error.js"
@@ -119,6 +120,38 @@ export async function acceptInviteController(req: Request, res: Response): Promi
     success: true,
     orgId: invite.orgId.toString(),
     role: invite.role
+  })
+}
+
+export async function getInviteDetailsController(req: Request, res: Response): Promise<Response> {
+  const token = typeof req.params.token === "string" ? req.params.token : ""
+  const invite = await InviteModel.findOne({
+    tokenHash: sha256(token),
+    acceptedAt: null,
+    expiresAt: { $gt: new Date() }
+  })
+
+  if (!invite) {
+    throw new HttpError(404, "Invite not found or expired")
+  }
+
+  const organization = await OrganizationModel.findById(invite.orgId)
+
+  if (!organization) {
+    throw new HttpError(404, "Organization not found")
+  }
+
+  return res.status(200).json({
+    organization: {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug
+    },
+    invite: {
+      email: invite.email,
+      role: invite.role,
+      expiresAt: invite.expiresAt
+    }
   })
 }
 

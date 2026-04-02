@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { useAuth } from "../hooks/useAuth"
 
@@ -7,6 +7,8 @@ export function LoginPage() {
   const { loginMutation } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const inviteToken = searchParams.get("invite")
   const [email, setEmail] = useState("demo@example.com")
   const [password, setPassword] = useState("password123")
   const [error, setError] = useState<string | null>(null)
@@ -16,7 +18,7 @@ export function LoginPage() {
 
     try {
       await loginMutation.mutateAsync({ email, password })
-      navigate(location.state?.from?.pathname ?? "/")
+      navigate(inviteToken ? `/invite?token=${encodeURIComponent(inviteToken)}` : (location.state?.from?.pathname ?? "/"))
     } catch {
       setError("Login failed. Check your credentials and try again.")
     }
@@ -49,6 +51,13 @@ export function LoginPage() {
         <button type="submit" disabled={loginMutation.isPending}>
           {loginMutation.isPending ? "Logging in..." : "Login"}
         </button>
+
+        <div className="auth-links">
+          <Link to={inviteToken ? `/register?invite=${encodeURIComponent(inviteToken)}` : "/register"}>
+            Create account
+          </Link>
+          <Link to="/forgot-password">Forgot password?</Link>
+        </div>
       </form>
     </div>
   )

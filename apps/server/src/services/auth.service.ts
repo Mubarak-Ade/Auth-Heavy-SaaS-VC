@@ -3,6 +3,7 @@ import mongoose from "mongoose"
 
 import type { LoginInput, RegisterInput } from "@auth-heavy-saas/shared"
 
+import { InviteModel } from "../models/invite.model.js"
 import { OrgMemberModel } from "../models/org-member.model.js"
 import { OrganizationModel } from "../models/organization.model.js"
 import { UserModel, type SessionSubdocument } from "../models/user.model.js"
@@ -20,6 +21,10 @@ import { sha256 } from "../utils/crypto.js"
 interface ResetPasswordInput {
   token: string
   newPassword: string
+}
+
+interface RegisterUserInput extends RegisterInput {
+  inviteToken?: string
 }
 
 export interface SerializedUser {
@@ -61,7 +66,7 @@ async function createDefaultOrganization(userId: mongoose.Types.ObjectId, name: 
   return organization
 }
 
-export async function registerUser(input: RegisterInput, sessionDetails: SessionDetails = {}) {
+export async function registerUser(input: RegisterUserInput, sessionDetails: SessionDetails = {}) {
   const email = normalizeEmail(input.email)
   const existingUser = await UserModel.findOne({ email })
 
@@ -77,7 +82,33 @@ export async function registerUser(input: RegisterInput, sessionDetails: Session
     emailVerified: false
   })
 
-  await createDefaultOrganization(user._id, user.name)
+  if (input.inviteToken) {
+    const invite = await InviteModel.findOne({
+      tokenHash: sha256(input.inviteToken),
+      acceptedAt: null,
+      expiresAt: { $gt: new Date() }
+    })
+
+    if (!invite) {
+      throw new HttpError(400, "Invalid or expired invite token")
+    }
+
+    if (invite.email !== email) {
+      throw new HttpError(403, "Invite email does not match the registration email")
+    }
+
+    await OrgMemberModel.create({
+      userId: user._id,
+      orgId: invite.orgId,
+      role: invite.role,
+      invitedBy: invite.invitedBy
+    })
+
+    invite.acceptedAt = new Date()
+    await invite.save()
+  } else {
+    await createDefaultOrganization(user._id, user.name)
+  }
 
   const serializedUser = serializeUser(user)
   const tokens = issueTokenPair(

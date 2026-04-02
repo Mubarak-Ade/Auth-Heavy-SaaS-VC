@@ -58,6 +58,29 @@ export function useAuth() {
             await queryClient.invalidateQueries({ queryKey: ["organizations"] });
         }
     });
+    const registerMutation = useMutation({
+        mutationFn: async (payload) => {
+            const { data } = await api.post("/auth/register", payload);
+            return data;
+        },
+        onSuccess: async (data) => {
+            setSession(data);
+            setInitialized(true);
+            await queryClient.invalidateQueries({ queryKey: ["organizations"] });
+        }
+    });
+    const forgotPasswordMutation = useMutation({
+        mutationFn: async (payload) => {
+            const { data } = await api.post("/auth/forgot-password", payload);
+            return data;
+        }
+    });
+    const resetPasswordMutation = useMutation({
+        mutationFn: async (payload) => {
+            const { data } = await api.post("/auth/reset-password", payload);
+            return data;
+        }
+    });
     const logoutMutation = useMutation({
         mutationFn: async () => {
             await api.post("/auth/logout");
@@ -76,6 +99,24 @@ export function useAuth() {
         },
         enabled: Boolean(user)
     });
+    const revokeSessionMutation = useMutation({
+        mutationFn: async (sessionId) => {
+            await api.delete(`/auth/sessions/${sessionId}`);
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
+        }
+    });
+    const revokeAllSessionsMutation = useMutation({
+        mutationFn: async () => {
+            await api.delete("/auth/sessions");
+        },
+        onSuccess: async () => {
+            clearSession();
+            setInitialized(true);
+            await queryClient.resetQueries();
+        }
+    });
     return {
         user,
         accessToken,
@@ -88,7 +129,12 @@ export function useAuth() {
         bootstrapQuery,
         sessionsQuery,
         loginMutation,
+        registerMutation,
+        forgotPasswordMutation,
+        resetPasswordMutation,
         logoutMutation,
+        revokeSessionMutation,
+        revokeAllSessionsMutation,
         isLoadingAuth: !initialized || bootstrapQuery.isLoading
     };
 }

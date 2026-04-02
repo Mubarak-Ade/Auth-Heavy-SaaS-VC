@@ -29,6 +29,12 @@ export const acceptInviteSchema = {
   })
 }
 
+export const inviteTokenParamsSchema = {
+  params: z.object({
+    token: z.string().min(1)
+  })
+}
+
 export const memberParamsSchema = {
   params: z.object({
     orgId: z.string().min(1),

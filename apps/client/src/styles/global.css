@@ -29,6 +29,22 @@ button {
   color: white;
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  background: #1f6f5f;
+  color: white;
+  text-decoration: none;
+}
+
+.secondary-link {
+  background: #e7e5e4;
+  color: #1f2937;
+}
+
 input,
 select {
   width: 100%;
@@ -103,6 +119,17 @@ select {
   width: min(100%, 420px);
 }
 
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.auth-links a {
+  color: #1f6f5f;
+  text-decoration: none;
+}
+
 .field {
   display: grid;
   gap: 0.5rem;
@@ -124,6 +151,14 @@ select {
 
 .error-text {
   color: #b91c1c;
+}
+
+.success-text {
+  color: #166534;
+}
+
+.surface-muted {
+  background: #f5f5f4;
 }
 
 .centered {

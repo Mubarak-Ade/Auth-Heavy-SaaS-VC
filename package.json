@@ -1,0 +1,20 @@
+{
+  "name": "auth-heavy-saas",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @auth-heavy-saas/server & npm run dev -w @auth-heavy-saas/client",
+    "dev:client": "npm run dev -w @auth-heavy-saas/client",
+    "dev:server": "npm run dev -w @auth-heavy-saas/server",
+    "build": "npm run build -w @auth-heavy-saas/shared && npm run build -w @auth-heavy-saas/server && npm run build -w @auth-heavy-saas/client",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

@@ -3,10 +3,10 @@ import { Navigate, Outlet, useLocation } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 
 export function ProtectedRoute() {
-  const { isLoading, user } = useAuth()
+  const { isLoadingAuth, user } = useAuth()
   const location = useLocation()
 
-  if (isLoading) {
+  if (isLoadingAuth) {
     return <div className="centered">Loading workspace...</div>
   }
 

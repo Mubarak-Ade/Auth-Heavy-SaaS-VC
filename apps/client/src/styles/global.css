@@ -108,6 +108,16 @@ select {
   gap: 0.5rem;
 }
 
+.row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.row > * {
+  flex: 1;
+}
+
 .muted {
   color: #6b7280;
 }

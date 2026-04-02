@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { loginMutation } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState("demo@example.com")
@@ -15,7 +15,7 @@ export function LoginPage() {
     event.preventDefault()
 
     try {
-      await login(email, password)
+      await loginMutation.mutateAsync({ email, password })
       navigate(location.state?.from?.pathname ?? "/")
     } catch {
       setError("Login failed. Check your credentials and try again.")
@@ -46,7 +46,9 @@ export function LoginPage() {
 
         {error ? <p className="error-text">{error}</p> : null}
 
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loginMutation.isPending}>
+          {loginMutation.isPending ? "Logging in..." : "Login"}
+        </button>
       </form>
     </div>
   )

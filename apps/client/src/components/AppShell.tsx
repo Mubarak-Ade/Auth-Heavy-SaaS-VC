@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 
 export function AppShell({ children }: PropsWithChildren) {
-  const { currentOrgId, organizations, switchOrganization, user, logout } = useAuth()
+  const { currentOrgId, organizations, setCurrentOrgId, user, logoutMutation } = useAuth()
 
   return (
     <div className="shell">
@@ -18,7 +18,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <span>Workspace</span>
           <select
             value={currentOrgId ?? ""}
-            onChange={(event) => switchOrganization(event.target.value)}
+            onChange={(event) => setCurrentOrgId(event.target.value)}
           >
             {organizations.map((organization) => (
               <option key={organization.id} value={organization.id}>
@@ -38,7 +38,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
         <div className="sidebar-footer">
           <p className="muted">{user?.email}</p>
-          <button type="button" onClick={() => void logout()}>
+          <button type="button" onClick={() => void logoutMutation.mutateAsync()}>
             Log out
           </button>
         </div>

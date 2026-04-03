@@ -88,6 +88,22 @@ export function useNoteMutations() {
         })
     };
 }
+export function useOrganizationMutations() {
+    const { setCurrentOrgId } = useAuth();
+    const queryClient = useQueryClient();
+    return {
+        createOrganizationMutation: useMutation({
+            mutationFn: async (payload) => {
+                const { data } = await api.post("/orgs", payload);
+                return data;
+            },
+            onSuccess: async (data) => {
+                setCurrentOrgId(data.id);
+                await queryClient.invalidateQueries({ queryKey: ["organizations"] });
+            }
+        })
+    };
+}
 export function useMembersQuery() {
     const { currentOrgId } = useAuth();
     return useQuery({

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 
 export function AppShell({ children }: PropsWithChildren) {
-  const { currentOrgId, organizations, setCurrentOrgId, user, logoutMutation } = useAuth()
+  const { currentOrgId, currentRole, organizations, setCurrentOrgId, user, logoutMutation } = useAuth()
 
   return (
     <div className="shell">
@@ -27,6 +27,8 @@ export function AppShell({ children }: PropsWithChildren) {
             ))}
           </select>
         </label>
+
+        <p className="muted">Role: {currentRole ?? "none"}</p>
 
         <nav className="nav">
           <Link to="/">Dashboard</Link>

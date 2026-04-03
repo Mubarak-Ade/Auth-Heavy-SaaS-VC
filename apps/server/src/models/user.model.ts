@@ -29,7 +29,6 @@ const userSchema = new Schema(
   }
 )
 
-userSchema.index({ email: 1 }, { unique: true })
 userSchema.index({ "refreshTokens.tokenHash": 1 })
 userSchema.index({ resetToken: 1 })
 

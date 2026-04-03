@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "../lib/api"
 import { useAuth } from "./useAuth"
-import type { DashboardMetrics, MemberItem, NoteItem, TaskItem } from "../types/app"
+import type { DashboardMetrics, MemberItem, NoteItem, OrganizationSummary, TaskItem } from "../types/app"
 
 export function useDashboardQuery() {
   const { currentOrgId } = useAuth()
@@ -51,7 +51,7 @@ export function useTaskMutations() {
     updateTaskMutation: useMutation({
       mutationFn: async (payload: {
         taskId: string
-        patch: Partial<Pick<TaskItem, "status" | "title" | "description" | "priority">>
+        patch: Partial<Pick<TaskItem, "status" | "title" | "description" | "priority" | "dueDate">>
       }) => {
         const { data } = await api.patch(`/orgs/${currentOrgId}/tasks/${payload.taskId}`, payload.patch)
         return data as TaskItem
@@ -113,6 +113,24 @@ export function useNoteMutations() {
         await api.delete(`/orgs/${currentOrgId}/notes/${noteId}`)
       },
       onSuccess: invalidate
+    })
+  }
+}
+
+export function useOrganizationMutations() {
+  const { setCurrentOrgId } = useAuth()
+  const queryClient = useQueryClient()
+
+  return {
+    createOrganizationMutation: useMutation({
+      mutationFn: async (payload: { name: string; slug: string }) => {
+        const { data } = await api.post("/orgs", payload)
+        return data as OrganizationSummary & { plan: string }
+      },
+      onSuccess: async (data) => {
+        setCurrentOrgId(data.id)
+        await queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      }
     })
   }
 }

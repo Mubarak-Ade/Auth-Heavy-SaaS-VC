@@ -1,6 +1,20 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useOrganizationMutations } from "../hooks/useWorkspace";
 export function SettingsPage() {
-    const { revokeAllSessionsMutation, revokeSessionMutation, sessionsQuery } = useAuth();
-    return (_jsxs("section", { className: "stack", children: [_jsxs("div", { children: [_jsx("h2", { children: "Settings" }), _jsx("p", { className: "muted", children: "Organization settings, profile, sessions, and future billing controls." })] }), _jsx("div", { className: "row", children: _jsx("button", { type: "button", onClick: () => void revokeAllSessionsMutation.mutateAsync(), children: "Log out all devices" }) }), _jsxs("div", { className: "stack", children: [sessionsQuery.data?.map((session) => (_jsxs("article", { className: "card stack", children: [_jsx("h3", { children: session.userAgent ?? "Unknown device" }), _jsxs("p", { className: "muted", children: ["IP: ", session.ip ?? "Unknown", " | Expires: ", new Date(session.expiresAt).toLocaleString()] }), _jsx("button", { type: "button", onClick: () => void revokeSessionMutation.mutateAsync(session.id), children: "Revoke session" })] }, session.id))), !sessionsQuery.data?.length ? (_jsx("div", { className: "card", children: _jsx("p", { children: "No active sessions to show." }) })) : null] })] }));
+    const { currentOrgId, currentRole, organizations, revokeAllSessionsMutation, revokeSessionMutation, sessionsQuery, user } = useAuth();
+    const { createOrganizationMutation } = useOrganizationMutations();
+    const [name, setName] = useState("");
+    const [slug, setSlug] = useState("");
+    async function handleCreateOrganization(event) {
+        event.preventDefault();
+        if (!name.trim() || !slug.trim())
+            return;
+        await createOrganizationMutation.mutateAsync({ name, slug });
+        setName("");
+        setSlug("");
+    }
+    const currentOrganization = organizations.find((organization) => organization.id === currentOrgId);
+    return (_jsxs("section", { className: "stack", children: [_jsxs("div", { children: [_jsx("h2", { children: "Settings" }), _jsx("p", { className: "muted", children: "Organization settings, profile, sessions, and future billing controls." })] }), _jsxs("div", { className: "grid", children: [_jsxs("article", { className: "card stack", children: [_jsx("h3", { children: "Current workspace" }), _jsx("p", { children: _jsx("strong", { children: currentOrganization?.name ?? "No workspace selected" }) }), _jsxs("p", { className: "muted", children: ["Slug: ", currentOrganization?.slug ?? "n/a"] }), _jsxs("p", { className: "muted", children: ["Your role: ", currentRole ?? "n/a"] }), _jsxs("p", { className: "muted", children: ["Signed in as ", user?.email ?? "unknown"] })] }), _jsxs("form", { className: "card stack", onSubmit: handleCreateOrganization, children: [_jsx("h3", { children: "Create workspace" }), _jsxs("label", { className: "field", children: [_jsx("span", { children: "Name" }), _jsx("input", { value: name, onChange: (event) => setName(event.target.value) })] }), _jsxs("label", { className: "field", children: [_jsx("span", { children: "Slug" }), _jsx("input", { value: slug, onChange: (event) => setSlug(event.target.value) })] }), _jsx("button", { type: "submit", disabled: createOrganizationMutation.isPending, children: createOrganizationMutation.isPending ? "Creating..." : "Create workspace" })] })] }), _jsx("div", { className: "row", children: _jsx("button", { type: "button", onClick: () => void revokeAllSessionsMutation.mutateAsync(), children: "Log out all devices" }) }), _jsxs("div", { className: "stack", children: [sessionsQuery.data?.map((session) => (_jsxs("article", { className: "card stack", children: [_jsx("h3", { children: session.userAgent ?? "Unknown device" }), _jsxs("p", { className: "muted", children: ["IP: ", session.ip ?? "Unknown", " | Expires: ", new Date(session.expiresAt).toLocaleString()] }), _jsx("button", { type: "button", onClick: () => void revokeSessionMutation.mutateAsync(session.id), children: "Revoke session" })] }, session.id))), !sessionsQuery.data?.length ? (_jsx("div", { className: "card", children: _jsx("p", { children: "No active sessions to show." }) })) : null] })] }));
 }

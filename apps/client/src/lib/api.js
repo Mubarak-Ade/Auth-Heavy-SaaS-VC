@@ -8,6 +8,13 @@ export const api = axios.create({
 });
 let isRefreshing = false;
 let queue = [];
+const authBypassPaths = new Set([
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/refresh"
+]);
 export function setAccessToken(token) {
     const user = useAuthStore.getState().user;
     if (token && user) {
@@ -27,7 +34,10 @@ api.interceptors.request.use((config) => {
 });
 api.interceptors.response.use((response) => response, async (error) => {
     const original = error.config;
-    if (error.response?.status !== 401 || original?._retry) {
+    const requestUrl = typeof original?.url === "string" ? original.url : "";
+    const pathname = requestUrl.startsWith("http") ? new URL(requestUrl).pathname : requestUrl;
+    const normalizedPath = pathname.startsWith("/api") ? pathname.replace(/^\/api/, "") : pathname;
+    if (error.response?.status !== 401 || original?._retry || authBypassPaths.has(normalizedPath)) {
         return Promise.reject(error);
     }
     original._retry = true;

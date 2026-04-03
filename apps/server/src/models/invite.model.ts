@@ -17,8 +17,6 @@ const inviteSchema = new Schema(
   { timestamps: true }
 )
 
-inviteSchema.index({ tokenHash: 1 }, { unique: true })
-
 export type InviteDocument = InferSchemaType<typeof inviteSchema> & { _id: mongoose.Types.ObjectId }
 
 export const InviteModel = mongoose.models.Invite || mongoose.model("Invite", inviteSchema)

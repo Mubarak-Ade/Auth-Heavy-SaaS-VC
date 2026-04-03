@@ -16,7 +16,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -46,12 +47,17 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid #d6d3d1;
   border-radius: 12px;
   padding: 0.8rem 1rem;
   background: white;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .shell {
@@ -94,6 +100,12 @@ select {
   gap: 1rem;
 }
 
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -106,6 +118,21 @@ select {
   border: 1px solid #e7e5e4;
   padding: 1.25rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.hero {
+  background: linear-gradient(135deg, rgba(19, 42, 36, 0.98), rgba(31, 111, 95, 0.92));
+  color: white;
+}
+
+.hero .muted {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.metric-card p:last-child {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
 }
 
 .auth-page {
@@ -165,6 +192,35 @@ select {
   min-height: 100vh;
   display: grid;
   place-items: center;
+}
+
+.toast-viewport {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  z-index: 1000;
+}
+
+.toast {
+  min-width: 220px;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  color: white;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+.toast-success {
+  background: #166534;
+}
+
+.toast-error {
+  background: #b91c1c;
+}
+
+.toast-info {
+  background: #1f6f5f;
 }
 
 @media (max-width: 900px) {

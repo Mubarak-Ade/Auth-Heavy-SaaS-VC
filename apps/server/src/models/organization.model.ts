@@ -16,8 +16,6 @@ const organizationSchema = new Schema(
   }
 )
 
-organizationSchema.index({ slug: 1 }, { unique: true })
-
 export type OrganizationDocument = InferSchemaType<typeof organizationSchema> & {
   _id: mongoose.Types.ObjectId
 }

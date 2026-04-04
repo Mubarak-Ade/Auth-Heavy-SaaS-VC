@@ -1,13 +1,14 @@
-import { FormEvent, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useAuth } from "../hooks/useAuth"
 import { useMemberMutations, useMembersQuery } from "../hooks/useWorkspace"
+import { inviteMemberFormSchema, type InviteMemberFormValues } from "../lib/form-schemas"
 import { useUiStore } from "../store/ui-store"
 
 export function MembersPage() {
   const pushToast = useUiStore((state) => state.pushToast)
-  const [email, setEmail] = useState("")
-  const [role, setRole] = useState<"admin" | "member" | "viewer">("member")
   const [lastInviteToken, setLastInviteToken] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState<"all" | "owner" | "admin" | "member" | "viewer">("all")
@@ -16,13 +17,23 @@ export function MembersPage() {
   const membersQuery = useMembersQuery()
   const { inviteMemberMutation, updateMemberRoleMutation, removeMemberMutation } = useMemberMutations()
   const canManageMembers = currentRole === "owner" || currentRole === "admin"
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<InviteMemberFormValues>({
+    resolver: zodResolver(inviteMemberFormSchema),
+    defaultValues: {
+      email: "",
+      role: "member"
+    }
+  })
 
-  async function handleInvite(event: FormEvent) {
-    event.preventDefault()
-    const result = await inviteMemberMutation.mutateAsync({ email, role })
+  async function handleInvite(values: InviteMemberFormValues) {
+    const result = await inviteMemberMutation.mutateAsync(values)
     setLastInviteToken(result.inviteToken)
-    setEmail("")
-    setRole("member")
+    reset()
     pushToast({ title: "Invite created", tone: "success" })
   }
 
@@ -80,14 +91,15 @@ export function MembersPage() {
       </div>
 
       {canManageMembers ? (
-        <form className="card stack" onSubmit={handleInvite}>
+        <form className="card stack" onSubmit={handleSubmit(handleInvite)}>
           <label className="field">
             <span>Email</span>
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+            <input {...register("email")} type="email" />
+            {errors.email ? <p className="error-text">{errors.email.message}</p> : null}
           </label>
           <label className="field">
             <span>Role</span>
-            <select value={role} onChange={(event) => setRole(event.target.value as "admin" | "member" | "viewer")}>
+            <select {...register("role")}>
               <option value="admin">Admin</option>
               <option value="member">Member</option>
               <option value="viewer">Viewer</option>

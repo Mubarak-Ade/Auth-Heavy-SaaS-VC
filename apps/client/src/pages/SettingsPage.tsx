@@ -1,21 +1,29 @@
-import { FormEvent, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useAuth } from "../hooks/useAuth"
 import { useOrganizationMutations } from "../hooks/useWorkspace"
+import { createOrganizationFormSchema, type CreateOrganizationFormValues } from "../lib/form-schemas"
 
 export function SettingsPage() {
   const { currentOrgId, currentRole, organizations, revokeAllSessionsMutation, revokeSessionMutation, sessionsQuery, user } = useAuth()
   const { createOrganizationMutation } = useOrganizationMutations()
-  const [name, setName] = useState("")
-  const [slug, setSlug] = useState("")
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<CreateOrganizationFormValues>({
+    resolver: zodResolver(createOrganizationFormSchema),
+    defaultValues: {
+      name: "",
+      slug: ""
+    }
+  })
 
-  async function handleCreateOrganization(event: FormEvent) {
-    event.preventDefault()
-    if (!name.trim() || !slug.trim()) return
-
-    await createOrganizationMutation.mutateAsync({ name, slug })
-    setName("")
-    setSlug("")
+  async function handleCreateOrganization(values: CreateOrganizationFormValues) {
+    await createOrganizationMutation.mutateAsync(values)
+    reset()
   }
 
   const currentOrganization = organizations.find((organization) => organization.id === currentOrgId)
@@ -36,15 +44,17 @@ export function SettingsPage() {
           <p className="muted">Signed in as {user?.email ?? "unknown"}</p>
         </article>
 
-        <form className="card stack" onSubmit={handleCreateOrganization}>
+        <form className="card stack" onSubmit={handleSubmit(handleCreateOrganization)}>
           <h3>Create workspace</h3>
           <label className="field">
             <span>Name</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} />
+            <input {...register("name")} />
+            {errors.name ? <p className="error-text">{errors.name.message}</p> : null}
           </label>
           <label className="field">
             <span>Slug</span>
-            <input value={slug} onChange={(event) => setSlug(event.target.value)} />
+            <input {...register("slug")} />
+            {errors.slug ? <p className="error-text">{errors.slug.message}</p> : null}
           </label>
           <button type="submit" disabled={createOrganizationMutation.isPending}>
             {createOrganizationMutation.isPending ? "Creating..." : "Create workspace"}

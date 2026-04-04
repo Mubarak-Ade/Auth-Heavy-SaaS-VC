@@ -1,8 +1,11 @@
-import { FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { useAuth } from "../hooks/useAuth"
 import { useInvite } from "../hooks/useInvite"
+import { registerFormSchema, type RegisterFormValues } from "../lib/form-schemas"
 
 export function RegisterPage() {
   const { registerMutation } = useAuth()
@@ -10,25 +13,32 @@ export function RegisterPage() {
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get("invite")
   const { inviteQuery } = useInvite(inviteToken)
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors }
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: ""
+    }
+  })
 
   useEffect(() => {
     if (inviteQuery.data?.invite.email) {
-      setEmail(inviteQuery.data.invite.email)
+      setValue("email", inviteQuery.data.invite.email, { shouldValidate: true })
     }
-  }, [inviteQuery.data])
+  }, [inviteQuery.data, setValue])
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-
+  async function onSubmit(values: RegisterFormValues) {
+    setError(null)
     try {
       await registerMutation.mutateAsync({
-        name,
-        email,
-        password,
+        ...values,
         inviteToken: inviteToken ?? undefined
       })
       navigate("/")
@@ -39,7 +49,7 @@ export function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <form className="card auth-card stack" onSubmit={handleSubmit}>
+      <form className="card auth-card stack" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <h1>Create your account</h1>
           <p className="muted">
@@ -51,21 +61,20 @@ export function RegisterPage() {
 
         <label className="field">
           <span>Name</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} />
+          <input {...register("name")} />
+          {errors.name ? <p className="error-text">{errors.name.message}</p> : null}
         </label>
 
         <label className="field">
           <span>Email</span>
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          <input {...register("email")} type="email" />
+          {errors.email ? <p className="error-text">{errors.email.message}</p> : null}
         </label>
 
         <label className="field">
           <span>Password</span>
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-          />
+          <input {...register("password")} type="password" />
+          {errors.password ? <p className="error-text">{errors.password.message}</p> : null}
         </label>
 
         {error ? <p className="error-text">{error}</p> : null}

@@ -1,37 +1,55 @@
-import { FormEvent, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useTaskMutations, useTasksQuery } from "../hooks/useWorkspace"
+import { taskFormSchema, type TaskFormValues } from "../lib/form-schemas"
 import { useUiStore } from "../store/ui-store"
 
 export function TasksPage() {
   const pushToast = useUiStore((state) => state.pushToast)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [editingTitle, setEditingTitle] = useState("")
-  const [editingDescription, setEditingDescription] = useState("")
-  const [editingPriority, setEditingPriority] = useState<"low" | "medium" | "high">("medium")
-  const [editingStatus, setEditingStatus] = useState<"todo" | "in_progress" | "done">("todo")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "todo" | "in_progress" | "done">("all")
   const [sortBy, setSortBy] = useState<"newest" | "priority" | "status">("newest")
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium")
   const tasksQuery = useTasksQuery()
   const { createTaskMutation, updateTaskMutation, deleteTaskMutation } = useTaskMutations()
+  const {
+    register: registerCreate,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors }
+  } = useForm<TaskFormValues>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: "medium"
+    }
+  })
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    reset: resetEditForm,
+    formState: { errors: editErrors }
+  } = useForm<TaskFormValues>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: "medium",
+      status: "todo"
+    }
+  })
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!title.trim()) return
-
+  async function handleCreateTask(values: TaskFormValues) {
     await createTaskMutation.mutateAsync({
-      title,
-      description,
-      priority
+      title: values.title,
+      description: values.description,
+      priority: values.priority
     })
 
-    setTitle("")
-    setDescription("")
-    setPriority("medium")
+    resetCreateForm()
     pushToast({ title: "Task created", tone: "success" })
   }
 
@@ -43,27 +61,29 @@ export function TasksPage() {
     status: "todo" | "in_progress" | "done"
   }) {
     setEditingTaskId(task.id)
-    setEditingTitle(task.title)
-    setEditingDescription(task.description)
-    setEditingPriority(task.priority)
-    setEditingStatus(task.status)
+    resetEditForm({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: task.status
+    })
   }
 
-  async function handleUpdateTask(event: FormEvent) {
-    event.preventDefault()
+  async function handleUpdateTask(values: TaskFormValues) {
     if (!editingTaskId) return
 
     await updateTaskMutation.mutateAsync({
       taskId: editingTaskId,
       patch: {
-        title: editingTitle,
-        description: editingDescription,
-        priority: editingPriority,
-        status: editingStatus
+        title: values.title,
+        description: values.description,
+        priority: values.priority,
+        status: values.status
       }
     })
 
     setEditingTaskId(null)
+    resetEditForm()
     pushToast({ title: "Task updated", tone: "success" })
   }
 
@@ -125,18 +145,20 @@ export function TasksPage() {
         </label>
       </div>
 
-      <form className="card stack" onSubmit={handleSubmit}>
+      <form className="card stack" onSubmit={handleCreateSubmit(handleCreateTask)}>
         <label className="field">
           <span>Task title</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} />
+          <input {...registerCreate("title")} />
+          {createErrors.title ? <p className="error-text">{createErrors.title.message}</p> : null}
         </label>
         <label className="field">
           <span>Description</span>
-          <input value={description} onChange={(event) => setDescription(event.target.value)} />
+          <input {...registerCreate("description")} />
+          {createErrors.description ? <p className="error-text">{createErrors.description.message}</p> : null}
         </label>
         <label className="field">
           <span>Priority</span>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as "low" | "medium" | "high")}>
+          <select {...registerCreate("priority")}>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -154,28 +176,21 @@ export function TasksPage() {
         {filteredTasks.map((task) => (
           <article className="card stack" key={task.id}>
             {editingTaskId === task.id ? (
-              <form className="stack" onSubmit={handleUpdateTask}>
+              <form className="stack" onSubmit={handleEditSubmit(handleUpdateTask)}>
                 <label className="field">
                   <span>Title</span>
-                  <input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} />
+                  <input {...registerEdit("title")} />
+                  {editErrors.title ? <p className="error-text">{editErrors.title.message}</p> : null}
                 </label>
                 <label className="field">
                   <span>Description</span>
-                  <textarea
-                    value={editingDescription}
-                    onChange={(event) => setEditingDescription(event.target.value)}
-                    rows={4}
-                  />
+                  <textarea {...registerEdit("description")} rows={4} />
+                  {editErrors.description ? <p className="error-text">{editErrors.description.message}</p> : null}
                 </label>
                 <div className="row">
                   <label className="field">
                     <span>Priority</span>
-                    <select
-                      value={editingPriority}
-                      onChange={(event) =>
-                        setEditingPriority(event.target.value as "low" | "medium" | "high")
-                      }
-                    >
+                    <select {...registerEdit("priority")}>
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
@@ -183,12 +198,7 @@ export function TasksPage() {
                   </label>
                   <label className="field">
                     <span>Status</span>
-                    <select
-                      value={editingStatus}
-                      onChange={(event) =>
-                        setEditingStatus(event.target.value as "todo" | "in_progress" | "done")
-                      }
-                    >
+                    <select {...registerEdit("status")}>
                       <option value="todo">Todo</option>
                       <option value="in_progress">In progress</option>
                       <option value="done">Done</option>
@@ -197,7 +207,7 @@ export function TasksPage() {
                 </div>
                 <div className="row">
                   <button type="submit">Save changes</button>
-                  <button type="button" onClick={() => setEditingTaskId(null)}>
+                  <button type="button" onClick={() => { setEditingTaskId(null); resetEditForm() }}>
                     Cancel
                   </button>
                 </div>

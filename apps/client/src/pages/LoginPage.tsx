@@ -1,7 +1,10 @@
-import { FormEvent, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { useAuth } from "../hooks/useAuth"
+import { loginFormSchema, type LoginFormValues } from "../lib/form-schemas"
 
 export function LoginPage() {
   const { loginMutation } = useAuth()
@@ -9,15 +12,23 @@ export function LoginPage() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const inviteToken = searchParams.get("invite")
-  const [email, setEmail] = useState("demo@example.com")
-  const [password, setPassword] = useState("password123")
   const [error, setError] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: "demo@example.com",
+      password: "password123"
+    }
+  })
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-
+  async function onSubmit(values: LoginFormValues) {
+    setError(null)
     try {
-      await loginMutation.mutateAsync({ email, password })
+      await loginMutation.mutateAsync(values)
       navigate(inviteToken ? `/invite?token=${encodeURIComponent(inviteToken)}` : (location.state?.from?.pathname ?? "/"))
     } catch {
       setError("Login failed. Check your credentials and try again.")
@@ -26,7 +37,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
-      <form className="card auth-card" onSubmit={handleSubmit}>
+      <form className="card auth-card" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <h1>Welcome back</h1>
           <p className="muted">Log in to your workspace.</p>
@@ -34,16 +45,14 @@ export function LoginPage() {
 
         <label className="field">
           <span>Email</span>
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          <input {...register("email")} type="email" />
+          {errors.email ? <p className="error-text">{errors.email.message}</p> : null}
         </label>
 
         <label className="field">
           <span>Password</span>
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-          />
+          <input {...register("password")} type="password" />
+          {errors.password ? <p className="error-text">{errors.password.message}</p> : null}
         </label>
 
         {error ? <p className="error-text">{error}</p> : null}

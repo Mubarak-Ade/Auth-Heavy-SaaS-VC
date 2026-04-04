@@ -1,31 +1,49 @@
-import { FormEvent, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useNoteMutations, useNotesQuery } from "../hooks/useWorkspace"
+import { noteFormSchema, type NoteFormValues } from "../lib/form-schemas"
 import { useUiStore } from "../store/ui-store"
 
 export function NotesPage() {
   const pushToast = useUiStore((state) => state.pushToast)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
-  const [editingTitle, setEditingTitle] = useState("")
-  const [editingContent, setEditingContent] = useState("")
-  const [editingVisibility, setEditingVisibility] = useState<"private" | "org" | "public">("org")
   const [search, setSearch] = useState("")
   const [visibilityFilter, setVisibilityFilter] = useState<"all" | "private" | "org" | "public">("all")
   const [sortBy, setSortBy] = useState<"updated" | "title">("updated")
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [visibility, setVisibility] = useState<"private" | "org" | "public">("org")
   const notesQuery = useNotesQuery()
   const { createNoteMutation, updateNoteMutation, deleteNoteMutation } = useNoteMutations()
+  const {
+    register: registerCreate,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors }
+  } = useForm<NoteFormValues>({
+    resolver: zodResolver(noteFormSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      visibility: "org"
+    }
+  })
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    reset: resetEditForm,
+    formState: { errors: editErrors }
+  } = useForm<NoteFormValues>({
+    resolver: zodResolver(noteFormSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      visibility: "org"
+    }
+  })
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!title.trim()) return
-
-    await createNoteMutation.mutateAsync({ title, content, visibility })
-    setTitle("")
-    setContent("")
-    setVisibility("org")
+  async function handleCreateNote(values: NoteFormValues) {
+    await createNoteMutation.mutateAsync(values)
+    resetCreateForm()
     pushToast({ title: "Note created", tone: "success" })
   }
 
@@ -36,25 +54,19 @@ export function NotesPage() {
     visibility: "private" | "org" | "public"
   }) {
     setEditingNoteId(note.id)
-    setEditingTitle(note.title)
-    setEditingContent(note.content)
-    setEditingVisibility(note.visibility)
+    resetEditForm(note)
   }
 
-  async function handleUpdateNote(event: FormEvent) {
-    event.preventDefault()
+  async function handleUpdateNote(values: NoteFormValues) {
     if (!editingNoteId) return
 
     await updateNoteMutation.mutateAsync({
       noteId: editingNoteId,
-      patch: {
-        title: editingTitle,
-        content: editingContent,
-        visibility: editingVisibility
-      }
+      patch: values
     })
 
     setEditingNoteId(null)
+    resetEditForm()
     pushToast({ title: "Note updated", tone: "success" })
   }
 
@@ -109,21 +121,20 @@ export function NotesPage() {
         </label>
       </div>
 
-      <form className="card stack" onSubmit={handleSubmit}>
+      <form className="card stack" onSubmit={handleCreateSubmit(handleCreateNote)}>
         <label className="field">
           <span>Title</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} />
+          <input {...registerCreate("title")} />
+          {createErrors.title ? <p className="error-text">{createErrors.title.message}</p> : null}
         </label>
         <label className="field">
           <span>Content</span>
-          <input value={content} onChange={(event) => setContent(event.target.value)} />
+          <input {...registerCreate("content")} />
+          {createErrors.content ? <p className="error-text">{createErrors.content.message}</p> : null}
         </label>
         <label className="field">
           <span>Visibility</span>
-          <select
-            value={visibility}
-            onChange={(event) => setVisibility(event.target.value as "private" | "org" | "public")}
-          >
+          <select {...registerCreate("visibility")}>
             <option value="private">Private</option>
             <option value="org">Org</option>
             <option value="public">Public</option>
@@ -141,27 +152,20 @@ export function NotesPage() {
         {filteredNotes.map((note) => (
           <article className="card stack" key={note.id}>
             {editingNoteId === note.id ? (
-              <form className="stack" onSubmit={handleUpdateNote}>
+              <form className="stack" onSubmit={handleEditSubmit(handleUpdateNote)}>
                 <label className="field">
                   <span>Title</span>
-                  <input value={editingTitle} onChange={(event) => setEditingTitle(event.target.value)} />
+                  <input {...registerEdit("title")} />
+                  {editErrors.title ? <p className="error-text">{editErrors.title.message}</p> : null}
                 </label>
                 <label className="field">
                   <span>Content</span>
-                  <textarea
-                    value={editingContent}
-                    onChange={(event) => setEditingContent(event.target.value)}
-                    rows={6}
-                  />
+                  <textarea {...registerEdit("content")} rows={6} />
+                  {editErrors.content ? <p className="error-text">{editErrors.content.message}</p> : null}
                 </label>
                 <label className="field">
                   <span>Visibility</span>
-                  <select
-                    value={editingVisibility}
-                    onChange={(event) =>
-                      setEditingVisibility(event.target.value as "private" | "org" | "public")
-                    }
-                  >
+                  <select {...registerEdit("visibility")}>
                     <option value="private">Private</option>
                     <option value="org">Org</option>
                     <option value="public">Public</option>
@@ -169,7 +173,7 @@ export function NotesPage() {
                 </label>
                 <div className="row">
                   <button type="submit">Save changes</button>
-                  <button type="button" onClick={() => setEditingNoteId(null)}>
+                  <button type="button" onClick={() => { setEditingNoteId(null); resetEditForm() }}>
                     Cancel
                   </button>
                 </div>

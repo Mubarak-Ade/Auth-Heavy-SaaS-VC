@@ -81,4 +81,20 @@ describe("auth routes", () => {
     expect(response.status).toBe(401)
     expect(response.body.error).toBe("Refresh token is missing")
   })
+
+  it("reports Redis as disabled on the health endpoint in tests", async () => {
+    const { createApp } = await import("../app.js")
+    const app = createApp()
+
+    const response = await request(app).get("/health")
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({
+      status: "ok",
+      services: {
+        mongodb: "connected",
+        redis: "disabled"
+      }
+    })
+  })
 })

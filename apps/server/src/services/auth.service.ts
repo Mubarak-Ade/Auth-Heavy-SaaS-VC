@@ -7,6 +7,11 @@ import { InviteModel } from "../models/invite.model.js"
 import { OrgMemberModel } from "../models/org-member.model.js"
 import { OrganizationModel } from "../models/organization.model.js"
 import { UserModel, type SessionSubdocument } from "../models/user.model.js"
+import {
+  isRefreshFamilyRevoked,
+  revokeRefreshFamilies,
+  revokeRefreshFamily
+} from "./refresh-family-store.js"
 import { normalizeEmail } from "../utils/identity.js"
 import { slugify } from "../utils/slug.js"
 import { HttpError } from "../utils/http-error.js"
@@ -39,6 +44,21 @@ function serializeUser(user: { _id: mongoose.Types.ObjectId; email: string; name
     email: user.email,
     name: user.name
   }
+}
+
+function getLatestFamilyExpiry(
+  sessions: SessionSubdocument[],
+  family: string
+): Date | null {
+  const familySessions = sessions.filter((session: SessionSubdocument) => session.family === family)
+
+  if (familySessions.length === 0) {
+    return null
+  }
+
+  return familySessions.reduce((latestExpiry, session) => {
+    return session.expiresAt > latestExpiry ? session.expiresAt : latestExpiry
+  }, familySessions[0].expiresAt)
 }
 
 async function createDefaultOrganization(userId: mongoose.Types.ObjectId, name: string) {
@@ -161,8 +181,13 @@ export async function loginUser(input: LoginInput, sessionDetails: SessionDetail
 }
 
 export async function refreshUserSession(rawToken: string, sessionDetails: SessionDetails = {}) {
-  const tokenHash = sha256(rawToken)
   const parsedToken = parseRefreshToken(rawToken)
+
+  if (parsedToken && (await isRefreshFamilyRevoked(parsedToken.family))) {
+    throw new HttpError(401, "Refresh token revoked")
+  }
+
+  const tokenHash = sha256(rawToken)
   const user = await UserModel.findOne({
     "refreshTokens.tokenHash": tokenHash
   })
@@ -174,10 +199,16 @@ export async function refreshUserSession(rawToken: string, sessionDetails: Sessi
       })
 
       if (reusedFamilyUser) {
+        const familyExpiry = getLatestFamilyExpiry(reusedFamilyUser.refreshTokens, parsedToken.family)
+
         reusedFamilyUser.refreshTokens = reusedFamilyUser.refreshTokens.filter(
           (session: SessionSubdocument) => session.family !== parsedToken.family
         )
         await reusedFamilyUser.save()
+
+        if (familyExpiry) {
+          await revokeRefreshFamily(parsedToken.family, familyExpiry)
+        }
       }
     }
 
@@ -229,10 +260,18 @@ export async function logoutUser(rawToken?: string): Promise<void> {
     return
   }
 
+  const existingSession = user.refreshTokens.find(
+    (session: SessionSubdocument) => session.tokenHash === tokenHash
+  )
+
   user.refreshTokens = user.refreshTokens.filter(
     (session: SessionSubdocument) => session.tokenHash !== tokenHash
   )
   await user.save()
+
+  if (existingSession) {
+    await revokeRefreshFamily(existingSession.family, existingSession.expiresAt)
+  }
 }
 
 export async function getCurrentUser(userId: string) {
@@ -279,6 +318,7 @@ export async function resetPassword(input: ResetPasswordInput) {
   user.passwordHash = await bcrypt.hash(input.newPassword, 12)
   user.resetToken = null
   user.resetTokenExpiry = null
+  await revokeRefreshFamilies(user.refreshTokens)
   user.refreshTokens = []
   await user.save()
 
@@ -314,10 +354,18 @@ export async function revokeSession(userId: string, sessionId: string) {
     throw new HttpError(404, "User not found")
   }
 
+  const sessionToRevoke = user.refreshTokens.find(
+    (session: SessionSubdocument) => session.tokenHash === sessionId
+  )
+
   user.refreshTokens = user.refreshTokens.filter(
     (session: SessionSubdocument) => session.tokenHash !== sessionId
   )
   await user.save()
+
+  if (sessionToRevoke) {
+    await revokeRefreshFamily(sessionToRevoke.family, sessionToRevoke.expiresAt)
+  }
 
   return { success: true }
 }
@@ -329,6 +377,7 @@ export async function revokeAllSessions(userId: string) {
     throw new HttpError(404, "User not found")
   }
 
+  await revokeRefreshFamilies(user.refreshTokens)
   user.refreshTokens = []
   await user.save()
 

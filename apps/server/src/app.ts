@@ -6,9 +6,10 @@ import helmet from "helmet"
 import "./types/express.js"
 import { corsOptions } from "./config/cors.js"
 import { env } from "./config/env.js"
+import { isRedisAvailable, isRedisReady } from "./lib/redis.js"
 import { errorHandler } from "./middleware/error-handler.js"
 import { notFoundHandler } from "./middleware/not-found.js"
-import { apiRateLimiter } from "./middleware/rate-limit.js"
+import { createApiRateLimiter } from "./middleware/rate-limit.js"
 import { requestContext } from "./middleware/request-context.js"
 import { requestLogger } from "./middleware/request-logger.js"
 import { authRouter } from "./routes/auth.routes.js"
@@ -28,10 +29,16 @@ export function createApp() {
   app.use(cors(corsOptions))
   app.use(cookieParser())
   app.use(express.json({ limit: "50kb" }))
-  app.use("/api", apiRateLimiter)
+  app.use("/api", createApiRateLimiter())
 
   app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok" })
+    res.status(200).json({
+      status: "ok",
+      services: {
+        mongodb: "connected",
+        redis: isRedisAvailable() ? (isRedisReady() ? "connected" : "connecting") : "disabled"
+      }
+    })
   })
 
   app.use("/api/auth", authRouter)

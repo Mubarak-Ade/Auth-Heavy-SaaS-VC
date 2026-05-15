@@ -1,9 +1,11 @@
 import { createApp } from "./app.js"
 import { env } from "./config/env.js"
 import { connectToDatabase } from "./db/connect.js"
+import { connectToRedis } from "./lib/redis.js"
 
 async function bootstrap() {
   await connectToDatabase()
+  await connectToRedis()
 
   const app = createApp()
 

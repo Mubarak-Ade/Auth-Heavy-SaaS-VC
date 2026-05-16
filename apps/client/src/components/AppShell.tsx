@@ -26,7 +26,7 @@ export function AppShell({ children }: PropsWithChildren) {
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-1 px-2">
             <h1 className="font-headline-md text-[20px] font-bold text-on-primary-container dark:text-primary-fixed leading-tight">
-              Nexus Workspace
+              AIM Workspace
             </h1>
             <p className="font-label-sm text-[12px] text-on-primary-container/60 uppercase tracking-widest">
               {currentRole ? `${currentRole} Plan` : "Pro Plan"}

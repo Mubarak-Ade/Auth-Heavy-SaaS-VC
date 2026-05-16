@@ -1,5 +1,7 @@
 node_modules
 dist
+**/src/**/*.js
+!**/src/**/*.config.js
 .env
 .env.*
 coverage
